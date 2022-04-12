@@ -10,21 +10,28 @@ parser.add_argument("-p", "--prokka", dest="prokka", help="input prokka file", m
 
 args = parser.parse_args()
 
-abr = open(args.abricate, "r")
+with open(args.abricate, "r") as abr:
+  abr_lines = abr.readlines()
 
-for line in abr.readlines():
+with open(args.prokka, "r") as prok:
+  prok_lines = prok.readlines()
+
+for abr_line in abr_lines:
   OUT = '-'
-  if line.startswith("#"):
+  if abr_line.startswith("#"):
     continue
-  contig = line.split('\t')[1]
-  start = line.split('\t')[2]
-  end = line.split('\t')[3]
-  name = line.split('\t')[5]
-  for line2 in open(args.prokka, "r").readlines():
-    if line2.startswith('##FASTA'):
+  contig = abr_line.split('\t')[1]
+  start = int(abr_line.split('\t')[2])
+  end = int(abr_line.split('\t')[3])
+  name = abr_line.split('\t')[5]
+  for prok_line in prok_lines:
+    if prok_line.startswith('##FASTA'):
       break
-    if line2.startswith('#'):
+    if prok_line.startswith('#'):
       continue
-    if (line2.split('\t')[0] == contig) & ((int(line2.split('\t')[3]) - int(start)) < 10) & ((int(line2.split('\t')[4]) - int(end)) < 10):
-      OUT = re.compile('[A-Z]{8}_[0-9]{5}').findall(line2)
+    if (prok_line.split('\t')[0] == contig):
+      prok_start = int(prok_line.split('\t')[3])
+      prok_end = int(prok_line.split('\t')[4])
+      if ((start <= prok_start) & (end > prok_start)) | ((prok_start <= start) & (start < prok_end)):
+        OUT = re.compile('[A-Z]{8}_[0-9]{5}').findall(prok_line)
   print(name, OUT[0], sep = '\t')
